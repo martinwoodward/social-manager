@@ -1187,7 +1187,19 @@ function setupEvents() {
 
 function setupPWA() {
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js").catch((err) => console.error("SW", err));
+    const version = window.APP_VERSION || "__APP_VERSION__";
+    navigator.serviceWorker
+      .register(`./service-worker.js?v=${version}`)
+      .then((registration) => {
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: "SKIP_WAITING" });
+        }
+        navigator.serviceWorker.controller?.postMessage({
+          type: "SET_VERSION",
+          version,
+        });
+      })
+      .catch((err) => console.error("SW", err));
   }
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();

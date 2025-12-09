@@ -1,12 +1,21 @@
-const CACHE = "social-manager-v1";
+const VERSION = "__APP_VERSION__";
+const CACHE = `social-manager-${VERSION}`;
 const ASSETS = [
-  "./",
-  "./index.html",
-  "./styles.css",
-  "./app.js",
-  "./manifest.webmanifest",
+  `./index.html?v=${VERSION}`,
+  `./styles.css?v=${VERSION}`,
+  `./app.js?v=${VERSION}`,
+  `./manifest.webmanifest`,
   "./icon.svg",
 ];
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+  if (event.data?.type === "SET_VERSION" && event.data.version) {
+    self.APP_VERSION = event.data.version;
+  }
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

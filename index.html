@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f172a">
   <title>Social Manager</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./styles.css?v=__APP_VERSION__">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -113,6 +113,9 @@
       </section>
     </main>
   </div>
-  <script type="module" src="./app.js"></script>
+  <script>
+    window.APP_VERSION = "__APP_VERSION__";
+  </script>
+  <script type="module" src="./app.js?v=__APP_VERSION__"></script>
 </body>
 </html>
