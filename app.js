@@ -1202,8 +1202,10 @@ function setupEvents() {
     const label = prompt("Label for this GIF");
     if (!url || !label) return;
     const category = prompt("Category (e.g., Celebration, Reaction, Thanks)", "General");
-    if (!category || category.trim() === "") return;
-    state.gifPref.push({ url, label, category: category.trim() });
+    if (!category) return;
+    const trimmedCategory = category.trim();
+    if (trimmedCategory === "") return;
+    state.gifPref.push({ url, label, category: trimmedCategory });
     saveGifs(state.gifPref);
     renderGifs();
   });
