@@ -1348,7 +1348,7 @@ function setupEvents() {
 
 function setupPWA() {
   if ("serviceWorker" in navigator) {
-    const version = window.APP_VERSION || "__APP_VERSION__";
+    const version = window.APP_VERSION || "096ffe7";
     navigator.serviceWorker
       .register(`./service-worker.js?v=${version}`)
       .then((registration) => {
