@@ -1093,7 +1093,7 @@ function renderGifs() {
   if (state.gifFilter) {
     const query = state.gifFilter.toLowerCase();
     filteredGifs = filteredGifs.filter(gif => 
-      gif.label.toLowerCase().includes(query) || 
+      (gif.label && gif.label.toLowerCase().includes(query)) || 
       (gif.category && gif.category.toLowerCase().includes(query))
     );
   }
@@ -1184,6 +1184,7 @@ function loadGifs() {
 }
 
 // GIF categories
+const DEFAULT_GIF_CATEGORY = "reaction";
 const gifCategories = [
   "reaction",
   "celebration",
@@ -1211,7 +1212,7 @@ function openGifModal(editIdx = -1) {
   if (existing) existing.remove();
 
   const isEdit = editIdx >= 0;
-  const gif = isEdit ? state.gifPref[editIdx] : { url: "", label: "", category: "reaction" };
+  const gif = isEdit ? state.gifPref[editIdx] : { url: "", label: "", category: DEFAULT_GIF_CATEGORY };
 
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
