@@ -238,6 +238,25 @@ textarea { resize: vertical; }
 
 .gif-picker { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
 
+.gif-categories {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  grid-column: 1 / -1;
+}
+
+.gif-categories .btn {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.gif-categories .btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
 .gif-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
 
 .gif-tile {

@@ -487,6 +487,7 @@ const state = {
   gifPref: loadGifs(),
   searchPresets: loadSearchPresets().length ? loadSearchPresets() : defaultSearchPresets,
   installPrompt: null,
+  selectedGifCategory: "All",
 };
 
 const el = (id) => document.getElementById(id);
@@ -1085,37 +1086,58 @@ function pickGif() {
 
 function renderGifs() {
   gifList.innerHTML = "";
-  if (!state.gifPref.length) {
-    gifList.innerHTML = `<div class="empty">Add your go-to reaction GIFs</div>`;
+  
+  // Get all unique categories
+  const categories = ["All", ...new Set(state.gifPref.map(g => g.category || "General"))];
+  
+  // Create category filter buttons
+  const filterRow = document.createElement("div");
+  filterRow.className = "gif-categories";
+  categories.forEach(cat => {
+    const btn = document.createElement("button");
+    btn.className = `btn ghost ${state.selectedGifCategory === cat ? "active" : ""}`;
+    btn.textContent = cat;
+    btn.dataset.category = cat;
+    filterRow.appendChild(btn);
+  });
+  gifList.appendChild(filterRow);
+  
+  // Filter GIFs by selected category
+  const filtered = state.selectedGifCategory === "All" 
+    ? state.gifPref 
+    : state.gifPref.filter(g => (g.category || "General") === state.selectedGifCategory);
+  
+  if (!filtered.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = state.gifPref.length ? "No GIFs in this category" : "Add your go-to reaction GIFs";
+    gifList.appendChild(empty);
     return;
   }
-  state.gifPref.forEach((gif, idx) => {
+  
+  filtered.forEach((gif) => {
+    const idx = state.gifPref.indexOf(gif);
     const tile = document.createElement("div");
     tile.className = "gif-tile";
+    tile.dataset.gifIndex = idx;
     tile.innerHTML = `<img src="${gif.url}" alt="${gif.label}"><span>${gif.label}</span>`;
-    tile.addEventListener("click", () => {
-      replyText.value = `${replyText.value}\n\nGIF: ${gif.url}`.trim();
-      setStatus("GIF attached");
-    });
-    tile.addEventListener("contextmenu", (e) => {
-      e.preventDefault();
-      if (confirm("Remove this GIF?")) {
-        state.gifPref.splice(idx, 1);
-        saveGifs(state.gifPref);
-        renderGifs();
-      }
-    });
     gifList.appendChild(tile);
   });
 }
 
 function loadGifs() {
   const stored = safeGetItem("sm_gifs", null);
-  if (stored) return stored;
+  if (stored) {
+    // Ensure backward compatibility: add default category if missing
+    return stored.map(gif => ({
+      ...gif,
+      category: gif.category || "General"
+    }));
+  }
   return [
-    { url: "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif", label: "Happy dance" },
-    { url: "https://media.giphy.com/media/l3V0dy1zzyjbYTQQM/giphy.gif", label: "Mic drop" },
-    { url: "https://media.giphy.com/media/26AHLBZUC1n53ozi8/giphy.gif", label: "Slow clap" },
+    { url: "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif", label: "Happy dance", category: "Celebration" },
+    { url: "https://media.giphy.com/media/l3V0dy1zzyjbYTQQM/giphy.gif", label: "Mic drop", category: "Celebration" },
+    { url: "https://media.giphy.com/media/26AHLBZUC1n53ozi8/giphy.gif", label: "Slow clap", category: "Reaction" },
   ];
 }
 
@@ -1179,9 +1201,46 @@ function setupEvents() {
     const url = prompt("GIF URL");
     const label = prompt("Label for this GIF");
     if (!url || !label) return;
-    state.gifPref.push({ url, label });
+    const category = prompt("Category (e.g., Celebration, Reaction, Thanks)", "General");
+    if (!category) return;
+    const trimmedCategory = category.trim();
+    if (trimmedCategory === "") return;
+    state.gifPref.push({ url, label, category: trimmedCategory });
     saveGifs(state.gifPref);
     renderGifs();
+  });
+  
+  // Event delegation for GIF list (categories and tiles)
+  gifList.addEventListener("click", (e) => {
+    const categoryBtn = e.target.closest(".gif-categories button");
+    if (categoryBtn) {
+      state.selectedGifCategory = categoryBtn.dataset.category;
+      renderGifs();
+      return;
+    }
+    
+    const gifTile = e.target.closest(".gif-tile");
+    if (gifTile) {
+      const idx = parseInt(gifTile.dataset.gifIndex, 10);
+      const gif = state.gifPref[idx];
+      if (gif) {
+        replyText.value = `${replyText.value}\n\nGIF: ${gif.url}`.trim();
+        setStatus("GIF attached");
+      }
+    }
+  });
+  
+  gifList.addEventListener("contextmenu", (e) => {
+    const gifTile = e.target.closest(".gif-tile");
+    if (gifTile) {
+      e.preventDefault();
+      const idx = parseInt(gifTile.dataset.gifIndex, 10);
+      if (confirm("Remove this GIF?")) {
+        state.gifPref.splice(idx, 1);
+        saveGifs(state.gifPref);
+        renderGifs();
+      }
+    }
   });
 }
 
