@@ -487,6 +487,8 @@ const state = {
   gifPref: loadGifs(),
   searchPresets: loadSearchPresets().length ? loadSearchPresets() : defaultSearchPresets,
   installPrompt: null,
+  gifFilter: "",
+  gifCategoryFilter: "all",
 };
 
 const el = (id) => document.getElementById(id);
@@ -1085,26 +1087,88 @@ function pickGif() {
 
 function renderGifs() {
   gifList.innerHTML = "";
-  if (!state.gifPref.length) {
-    gifList.innerHTML = `<div class="empty">Add your go-to reaction GIFs</div>`;
+  
+  // Apply filters
+  let filteredGifs = state.gifPref;
+  if (state.gifFilter) {
+    const query = state.gifFilter.toLowerCase();
+    filteredGifs = filteredGifs.filter(gif => 
+      (gif.label && gif.label.toLowerCase().includes(query)) || 
+      (gif.category && gif.category.toLowerCase().includes(query))
+    );
+  }
+  if (state.gifCategoryFilter !== "all") {
+    filteredGifs = filteredGifs.filter(gif => gif.category === state.gifCategoryFilter);
+  }
+  
+  if (!filteredGifs.length) {
+    gifList.innerHTML = `<div class="empty">${state.gifPref.length ? 'No GIFs match your filter' : 'Add your go-to reaction GIFs'}</div>`;
     return;
   }
-  state.gifPref.forEach((gif, idx) => {
+  
+  filteredGifs.forEach((gif, filteredIdx) => {
+    // Find the actual index in the full array for reordering
+    const actualIdx = state.gifPref.indexOf(gif);
+    
     const tile = document.createElement("div");
     tile.className = "gif-tile";
-    tile.innerHTML = `<img src="${gif.url}" alt="${gif.label}"><span>${gif.label}</span>`;
-    tile.addEventListener("click", () => {
+    
+    const categoryBadge = gif.category ? `<span class="gif-category">${gif.category}</span>` : '';
+    
+    tile.innerHTML = `
+      <img src="${gif.url}" alt="${gif.label}">
+      <span class="gif-label">${escapeHtml(gif.label)}</span>
+      ${categoryBadge}
+      <div class="gif-actions">
+        <button class="gif-action-btn" data-action="up" title="Move up" ${actualIdx === 0 ? 'disabled' : ''}>↑</button>
+        <button class="gif-action-btn" data-action="down" title="Move down" ${actualIdx === state.gifPref.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="gif-action-btn" data-action="edit" title="Edit">✎</button>
+        <button class="gif-action-btn" data-action="delete" title="Delete">✕</button>
+      </div>
+    `;
+    
+    // Click to attach GIF
+    tile.querySelector("img").addEventListener("click", () => {
       replyText.value = `${replyText.value}\n\nGIF: ${gif.url}`.trim();
       setStatus("GIF attached");
     });
-    tile.addEventListener("contextmenu", (e) => {
-      e.preventDefault();
-      if (confirm("Remove this GIF?")) {
-        state.gifPref.splice(idx, 1);
+    
+    // Move up
+    tile.querySelector("[data-action='up']").addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (actualIdx > 0) {
+        [state.gifPref[actualIdx - 1], state.gifPref[actualIdx]] = [state.gifPref[actualIdx], state.gifPref[actualIdx - 1]];
         saveGifs(state.gifPref);
         renderGifs();
       }
     });
+    
+    // Move down
+    tile.querySelector("[data-action='down']").addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (actualIdx < state.gifPref.length - 1) {
+        [state.gifPref[actualIdx], state.gifPref[actualIdx + 1]] = [state.gifPref[actualIdx + 1], state.gifPref[actualIdx]];
+        saveGifs(state.gifPref);
+        renderGifs();
+      }
+    });
+    
+    // Edit
+    tile.querySelector("[data-action='edit']").addEventListener("click", (e) => {
+      e.stopPropagation();
+      openEditGifModal(actualIdx);
+    });
+    
+    // Delete
+    tile.querySelector("[data-action='delete']").addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (confirm(`Remove "${gif.label}"?`)) {
+        state.gifPref.splice(actualIdx, 1);
+        saveGifs(state.gifPref);
+        renderGifs();
+      }
+    });
+    
     gifList.appendChild(tile);
   });
 }
@@ -1113,14 +1177,101 @@ function loadGifs() {
   const stored = safeGetItem("sm_gifs", null);
   if (stored) return stored;
   return [
-    { url: "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif", label: "Happy dance" },
-    { url: "https://media.giphy.com/media/l3V0dy1zzyjbYTQQM/giphy.gif", label: "Mic drop" },
-    { url: "https://media.giphy.com/media/26AHLBZUC1n53ozi8/giphy.gif", label: "Slow clap" },
+    { url: "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif", label: "Happy dance", category: "celebration" },
+    { url: "https://media.giphy.com/media/l3V0dy1zzyjbYTQQM/giphy.gif", label: "Mic drop", category: "reaction" },
+    { url: "https://media.giphy.com/media/26AHLBZUC1n53ozi8/giphy.gif", label: "Slow clap", category: "reaction" },
   ];
 }
 
+// GIF categories
+const DEFAULT_GIF_CATEGORY = "reaction";
+const gifCategories = [
+  "reaction",
+  "celebration",
+  "thinking",
+  "agreement",
+  "excitement",
+  "humor",
+  "other"
+];
+
 function saveGifs(list) {
   return safeSetItem("sm_gifs", list);
+}
+
+function openAddGifModal() {
+  openGifModal(-1);
+}
+
+function openEditGifModal(idx) {
+  openGifModal(idx);
+}
+
+function openGifModal(editIdx = -1) {
+  const existing = document.querySelector(".modal-overlay");
+  if (existing) existing.remove();
+
+  const isEdit = editIdx >= 0;
+  const gif = isEdit ? state.gifPref[editIdx] : { url: "", label: "", category: DEFAULT_GIF_CATEGORY };
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>${isEdit ? 'Edit' : 'Add'} GIF</h3>
+      <form id="gifForm">
+        <label class="stacked">
+          <span>GIF URL</span>
+          <input type="url" name="url" value="${escapeAttr(gif.url)}" placeholder="https://media.giphy.com/media/..." required>
+          <span class="hint">Direct link to GIF image (e.g., from Giphy, Tenor)</span>
+        </label>
+        <label class="stacked">
+          <span>Label</span>
+          <input type="text" name="label" value="${escapeAttr(gif.label)}" placeholder="e.g., Thumbs up" required>
+        </label>
+        <label class="stacked">
+          <span>Category</span>
+          <select name="category">
+            ${gifCategories.map(cat => `<option value="${cat}" ${gif.category === cat ? 'selected' : ''}>${cat.charAt(0).toUpperCase() + cat.slice(1)}</option>`).join('')}
+          </select>
+        </label>
+        <div class="modal__actions">
+          <button type="submit" class="btn primary">${isEdit ? 'Save' : 'Add'}</button>
+          <button type="button" class="btn ghost" data-close>Cancel</button>
+        </div>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector("[data-close]").addEventListener("click", () => overlay.remove());
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+  
+  overlay.querySelector("form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const newGif = {
+      url: formData.get("url").trim(),
+      label: formData.get("label").trim(),
+      category: formData.get("category"),
+    };
+    
+    if (!newGif.url || !newGif.label) {
+      alert("Please fill in all required fields");
+      return;
+    }
+    
+    if (isEdit) {
+      state.gifPref[editIdx] = newGif;
+    } else {
+      state.gifPref.push(newGif);
+    }
+    
+    saveGifs(state.gifPref);
+    overlay.remove();
+    renderGifs();
+    setStatus(isEdit ? "GIF updated" : "GIF added");
+  });
 }
 
 function copyText(text) {
@@ -1175,14 +1326,25 @@ function setupEvents() {
     if (!el("autoDraftToggle").checked) return;
     setTimeout(draftReply, 30);
   });
-  el("addGifButton").addEventListener("click", () => {
-    const url = prompt("GIF URL");
-    const label = prompt("Label for this GIF");
-    if (!url || !label) return;
-    state.gifPref.push({ url, label });
-    saveGifs(state.gifPref);
-    renderGifs();
-  });
+  el("addGifButton").addEventListener("click", openAddGifModal);
+  
+  // GIF filter
+  const gifFilterInput = el("gifFilterInput");
+  if (gifFilterInput) {
+    gifFilterInput.addEventListener("input", (e) => {
+      state.gifFilter = e.target.value.trim();
+      renderGifs();
+    });
+  }
+  
+  // GIF category filter
+  const gifCategorySelect = el("gifCategorySelect");
+  if (gifCategorySelect) {
+    gifCategorySelect.addEventListener("change", (e) => {
+      state.gifCategoryFilter = e.target.value;
+      renderGifs();
+    });
+  }
 }
 
 function setupPWA() {

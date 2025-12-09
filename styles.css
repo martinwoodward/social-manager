@@ -238,6 +238,44 @@ textarea { resize: vertical; }
 
 .gif-picker { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
 
+.gif-filters {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.gif-filter-input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.gif-filter-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.gif-category-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.gif-category-select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .gif-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
 
 .gif-tile {
@@ -249,18 +287,80 @@ textarea { resize: vertical; }
   background: #020617;
 }
 
-.gif-tile img { width: 100%; height: 120px; object-fit: cover; display: block; }
+.gif-tile img { 
+  width: 100%; 
+  height: 120px; 
+  object-fit: cover; 
+  display: block;
+  cursor: pointer;
+}
 
-.gif-tile span {
+.gif-tile:hover .gif-actions {
+  opacity: 1;
+}
+
+.gif-label {
   position: absolute;
   bottom: 8px;
   left: 8px;
   right: 8px;
   padding: 6px 8px;
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.75);
   color: #e2e8f0;
   font-size: 12px;
+  pointer-events: none;
+}
+
+.gif-category {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: rgba(99, 102, 241, 0.9);
+  color: white;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+.gif-actions {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.gif-action-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.gif-action-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.9);
+  border-color: rgba(99, 102, 241, 1);
+}
+
+.gif-action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .badge {
