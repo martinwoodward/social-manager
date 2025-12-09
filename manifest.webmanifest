@@ -7,6 +7,6 @@
   "theme_color": "#0f172a",
   "description": "Compose and reply across social networks with LLM help.",
   "icons": [
-    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
 }
