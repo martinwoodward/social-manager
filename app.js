@@ -1097,10 +1097,7 @@ function renderGifs() {
     const btn = document.createElement("button");
     btn.className = `btn ghost ${state.selectedGifCategory === cat ? "active" : ""}`;
     btn.textContent = cat;
-    btn.addEventListener("click", () => {
-      state.selectedGifCategory = cat;
-      renderGifs();
-    });
+    btn.dataset.category = cat;
     filterRow.appendChild(btn);
   });
   gifList.appendChild(filterRow);
@@ -1122,19 +1119,8 @@ function renderGifs() {
     const idx = state.gifPref.indexOf(gif);
     const tile = document.createElement("div");
     tile.className = "gif-tile";
+    tile.dataset.gifIndex = idx;
     tile.innerHTML = `<img src="${gif.url}" alt="${gif.label}"><span>${gif.label}</span>`;
-    tile.addEventListener("click", () => {
-      replyText.value = `${replyText.value}\n\nGIF: ${gif.url}`.trim();
-      setStatus("GIF attached");
-    });
-    tile.addEventListener("contextmenu", (e) => {
-      e.preventDefault();
-      if (confirm("Remove this GIF?")) {
-        state.gifPref.splice(idx, 1);
-        saveGifs(state.gifPref);
-        renderGifs();
-      }
-    });
     gifList.appendChild(tile);
   });
 }
@@ -1216,10 +1202,43 @@ function setupEvents() {
     const label = prompt("Label for this GIF");
     if (!url || !label) return;
     const category = prompt("Category (e.g., Celebration, Reaction, Thanks)", "General");
-    if (!category) return;
-    state.gifPref.push({ url, label, category });
+    if (!category || category.trim() === "") return;
+    state.gifPref.push({ url, label, category: category.trim() });
     saveGifs(state.gifPref);
     renderGifs();
+  });
+  
+  // Event delegation for GIF list (categories and tiles)
+  gifList.addEventListener("click", (e) => {
+    const categoryBtn = e.target.closest(".gif-categories button");
+    if (categoryBtn) {
+      state.selectedGifCategory = categoryBtn.dataset.category;
+      renderGifs();
+      return;
+    }
+    
+    const gifTile = e.target.closest(".gif-tile");
+    if (gifTile) {
+      const idx = parseInt(gifTile.dataset.gifIndex, 10);
+      const gif = state.gifPref[idx];
+      if (gif) {
+        replyText.value = `${replyText.value}\n\nGIF: ${gif.url}`.trim();
+        setStatus("GIF attached");
+      }
+    }
+  });
+  
+  gifList.addEventListener("contextmenu", (e) => {
+    const gifTile = e.target.closest(".gif-tile");
+    if (gifTile) {
+      e.preventDefault();
+      const idx = parseInt(gifTile.dataset.gifIndex, 10);
+      if (confirm("Remove this GIF?")) {
+        state.gifPref.splice(idx, 1);
+        saveGifs(state.gifPref);
+        renderGifs();
+      }
+    }
   });
 }
 
