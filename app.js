@@ -485,6 +485,7 @@ const state = {
   feed: [],
   selectedMessage: null,
   gifPref: loadGifs(),
+  selectedGifCategory: "All",
   searchPresets: loadSearchPresets().length ? loadSearchPresets() : defaultSearchPresets,
   installPrompt: null,
 };
@@ -828,6 +829,91 @@ function openSettingsModal() {
   overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
 }
 
+function openGifModal() {
+  const existing = document.querySelector(".modal-overlay");
+  if (existing) existing.remove();
+  
+  // Get unique categories for the dropdown
+  const categories = [...new Set(state.gifPref.map(g => g.category).filter(Boolean))];
+  if (categories.length === 0) categories.push("Reaction", "Celebration", "Thinking");
+  
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `
+    <div class="modal">
+      <h3>Add GIF</h3>
+      <label class="stacked">
+        <span>GIF URL</span>
+        <input type="url" id="gifUrl" placeholder="https://media.giphy.com/media/...">
+      </label>
+      <label class="stacked">
+        <span>Label</span>
+        <input type="text" id="gifLabel" placeholder="Happy dance">
+      </label>
+      <label class="stacked">
+        <span>Category</span>
+        <select id="gifCategory">
+          ${categories.map(cat => `<option value="${escapeAttr(cat)}">${escapeAttr(cat)}</option>`).join("")}
+          <option value="__new__">+ New Category...</option>
+        </select>
+      </label>
+      <div class="modal__actions">
+        <button type="button" class="btn primary" id="saveGifBtn">Add GIF</button>
+        <button type="button" class="btn ghost" data-close>Cancel</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  
+  const urlInput = overlay.querySelector("#gifUrl");
+  const labelInput = overlay.querySelector("#gifLabel");
+  const categorySelect = overlay.querySelector("#gifCategory");
+  
+  // Handle new category selection
+  categorySelect.addEventListener("change", (e) => {
+    if (e.target.value === "__new__") {
+      const newCat = prompt("Enter new category name:");
+      if (newCat) {
+        const opt = document.createElement("option");
+        opt.value = newCat;
+        opt.textContent = newCat;
+        opt.selected = true;
+        categorySelect.insertBefore(opt, categorySelect.lastElementChild);
+      } else {
+        categorySelect.selectedIndex = 0;
+      }
+    }
+  });
+  
+  overlay.querySelector("#saveGifBtn").addEventListener("click", () => {
+    const url = urlInput.value.trim();
+    const label = labelInput.value.trim();
+    const category = categorySelect.value;
+    
+    if (!url || !label) {
+      alert("Please fill in both URL and label");
+      return;
+    }
+    
+    if (category === "__new__") {
+      alert("Please select or create a category");
+      return;
+    }
+    
+    state.gifPref.push({ url, label, category });
+    saveGifs(state.gifPref);
+    renderGifs();
+    overlay.remove();
+    setStatus("GIF added");
+  });
+  
+  overlay.querySelector("[data-close]").addEventListener("click", () => overlay.remove());
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.remove(); });
+  
+  // Focus on first input
+  urlInput.focus();
+}
+
 function escapeAttr(str) {
   return (str || "").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
@@ -1084,38 +1170,52 @@ function pickGif() {
 }
 
 function renderGifs() {
+  // Get unique categories
+  const categories = ["All", ...new Set(state.gifPref.map(g => g.category).filter(Boolean))];
+  
+  // Render category filters
+  const filterContainer = document.querySelector(".gif-filters");
+  if (filterContainer) {
+    filterContainer.innerHTML = categories.map(cat => 
+      `<button class="btn-filter ${state.selectedGifCategory === cat ? 'active' : ''}" data-category="${cat}">${cat}</button>`
+    ).join("");
+  }
+  
+  // Filter GIFs by category
+  const filteredGifs = state.selectedGifCategory === "All" 
+    ? state.gifPref 
+    : state.gifPref.filter(g => g.category === state.selectedGifCategory);
+  
   gifList.innerHTML = "";
-  if (!state.gifPref.length) {
-    gifList.innerHTML = `<div class="empty">Add your go-to reaction GIFs</div>`;
+  if (!filteredGifs.length) {
+    gifList.innerHTML = `<div class="empty">No GIFs in this category</div>`;
     return;
   }
-  state.gifPref.forEach((gif, idx) => {
+  
+  filteredGifs.forEach((gif) => {
     const tile = document.createElement("div");
     tile.className = "gif-tile";
+    tile.dataset.url = gif.url;
+    tile.dataset.label = gif.label;
     tile.innerHTML = `<img src="${gif.url}" alt="${gif.label}"><span>${gif.label}</span>`;
-    tile.addEventListener("click", () => {
-      replyText.value = `${replyText.value}\n\nGIF: ${gif.url}`.trim();
-      setStatus("GIF attached");
-    });
-    tile.addEventListener("contextmenu", (e) => {
-      e.preventDefault();
-      if (confirm("Remove this GIF?")) {
-        state.gifPref.splice(idx, 1);
-        saveGifs(state.gifPref);
-        renderGifs();
-      }
-    });
     gifList.appendChild(tile);
   });
 }
 
 function loadGifs() {
   const stored = safeGetItem("sm_gifs", null);
-  if (stored) return stored;
+  if (stored) {
+    // Migrate old GIFs without categories
+    return stored.map(gif => ({
+      url: gif.url,
+      label: gif.label,
+      category: gif.category || "Reaction"
+    }));
+  }
   return [
-    { url: "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif", label: "Happy dance" },
-    { url: "https://media.giphy.com/media/l3V0dy1zzyjbYTQQM/giphy.gif", label: "Mic drop" },
-    { url: "https://media.giphy.com/media/26AHLBZUC1n53ozi8/giphy.gif", label: "Slow clap" },
+    { url: "https://media.giphy.com/media/3oriO0OEd9QIDdllqo/giphy.gif", label: "Happy dance", category: "Celebration" },
+    { url: "https://media.giphy.com/media/l3V0dy1zzyjbYTQQM/giphy.gif", label: "Mic drop", category: "Reaction" },
+    { url: "https://media.giphy.com/media/26AHLBZUC1n53ozi8/giphy.gif", label: "Slow clap", category: "Reaction" },
   ];
 }
 
@@ -1175,13 +1275,38 @@ function setupEvents() {
     if (!el("autoDraftToggle").checked) return;
     setTimeout(draftReply, 30);
   });
-  el("addGifButton").addEventListener("click", () => {
-    const url = prompt("GIF URL");
-    const label = prompt("Label for this GIF");
-    if (!url || !label) return;
-    state.gifPref.push({ url, label });
-    saveGifs(state.gifPref);
-    renderGifs();
+  el("addGifButton").addEventListener("click", openGifModal);
+  
+  // Event delegation for GIF list
+  gifList.addEventListener("click", (e) => {
+    const tile = e.target.closest(".gif-tile");
+    if (!tile) return;
+    const gifUrl = tile.dataset.url;
+    replyText.value = `${replyText.value}\n\nGIF: ${gifUrl}`.trim();
+    setStatus("GIF attached");
+  });
+  
+  gifList.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    const tile = e.target.closest(".gif-tile");
+    if (!tile) return;
+    const gifUrl = tile.dataset.url;
+    if (confirm("Remove this GIF?")) {
+      const idx = state.gifPref.findIndex(g => g.url === gifUrl);
+      if (idx !== -1) {
+        state.gifPref.splice(idx, 1);
+        saveGifs(state.gifPref);
+        renderGifs();
+      }
+    }
+  });
+  
+  // Event delegation for category filters
+  document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("btn-filter")) {
+      state.selectedGifCategory = e.target.dataset.category;
+      renderGifs();
+    }
   });
 }
 
