@@ -891,12 +891,12 @@ function openGifModal() {
     const category = categorySelect.value;
     
     if (!url || !label) {
-      alert("Please fill in both URL and label");
+      setStatus("⚠️ Please fill in both URL and label");
       return;
     }
     
     if (category === "__new__") {
-      alert("Please select or create a category");
+      setStatus("⚠️ Please select or create a category");
       return;
     }
     
