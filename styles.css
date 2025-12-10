@@ -238,6 +238,36 @@ textarea { resize: vertical; }
 
 .gif-picker { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
 
+.gif-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.btn-filter {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-2);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.btn-filter:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.btn-filter.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
 .gif-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
 
 .gif-tile {
