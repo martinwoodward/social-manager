@@ -238,6 +238,19 @@ textarea { resize: vertical; }
 
 .gif-picker { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
 
+.gif-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gif-filters .btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
 .gif-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
 
 .gif-tile {
@@ -247,20 +260,40 @@ textarea { resize: vertical; }
   border: 1px solid var(--border);
   cursor: pointer;
   background: #020617;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.gif-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
 }
 
 .gif-tile img { width: 100%; height: 120px; object-fit: cover; display: block; }
 
 .gif-tile span {
   position: absolute;
-  bottom: 8px;
   left: 8px;
   right: 8px;
   padding: 6px 8px;
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
   color: #e2e8f0;
   font-size: 12px;
+  font-weight: 500;
+}
+
+.gif-tile span:first-of-type {
+  bottom: 32px;
+}
+
+.gif-tile .gif-category {
+  bottom: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  opacity: 0.8;
 }
 
 .badge {
