@@ -1155,7 +1155,8 @@ function renderGifs() {
   // Render category filters
   const filterContainer = document.querySelector(".gif-filters");
   if (filterContainer) {
-    const categories = ["all", ...new Set(state.gifPref.map(g => g.category))];
+    // Filter out undefined/null categories and get unique categories
+    const categories = ["all", ...new Set(state.gifPref.map(g => g.category).filter(c => c))];
     filterContainer.innerHTML = categories.map(cat => {
       const active = state.selectedGifCategory === cat;
       const count = cat === "all" ? state.gifPref.length : state.gifPref.filter(g => g.category === cat).length;
@@ -1174,15 +1175,15 @@ function renderGifs() {
   // Render GIFs
   gifList.innerHTML = "";
   
-  // Filter GIFs by selected category
-  const filteredGifs = state.selectedGifCategory === "all" 
-    ? state.gifPref 
-    : state.gifPref.filter(gif => gif.category === state.selectedGifCategory);
-  
   if (!state.gifPref.length) {
     gifList.innerHTML = `<div class="empty">Add your go-to reaction GIFs</div>`;
     return;
   }
+  
+  // Filter GIFs by selected category
+  const filteredGifs = state.selectedGifCategory === "all" 
+    ? state.gifPref 
+    : state.gifPref.filter(gif => gif.category === state.selectedGifCategory);
   
   if (!filteredGifs.length) {
     gifList.innerHTML = `<div class="empty">No GIFs in this category</div>`;
